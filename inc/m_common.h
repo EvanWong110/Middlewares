@@ -43,7 +43,9 @@
 #define CONVERTHEX_alpha(c)  (IS_AF(c) ? (c - 'A'+10) : (c - 'a'+10))
 #define CONVERTHEX(c)   (IS_09(c) ? (c - '0') : CONVERTHEX_alpha(c))
 
-#define SerialPutString(x) Serial_PutString((uint8_t*)(x))
+#define M_ENTER_CRITICAL()
+
+#define M_EXIT_CRITICAL()
 
 /* Exported functions ------------------------------------------------------- */
 void Int2Str(uint8_t* str,int32_t intnum);

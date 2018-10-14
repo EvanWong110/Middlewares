@@ -28,11 +28,13 @@ int8_t m_timeout_add(m_tm_tcb *tm)
 	now = tm_get_now();
 	
 	//链表为空
+	M_ENTER_CRITICAL();
 	if(ptm_list_header == NULL)
 	{
 		m_timeouts_last_time = now;
 		ptm_list_header = tm;
 		tm->next = NULL;
+		M_EXIT_CRITICAL();
 		return 0;
 	}
 	else
@@ -70,6 +72,7 @@ int8_t m_timeout_add(m_tm_tcb *tm)
 			}
 		}
 	}
+	M_EXIT_CRITICAL();
 	return 0;
 	
 }
@@ -78,6 +81,7 @@ int8_t m_timeout_add(m_tm_tcb *tm)
 int8_t m_timeout_delete(m_tm_tcb *tm)
 {
 	m_tm_tcb *prev, *t;
+	M_ENTER_CRITICAL();
 	for(t=ptm_list_header, prev=NULL; t!=NULL; prev=t, t=t->next)
 	{
 		if(t == tm)
@@ -90,9 +94,12 @@ int8_t m_timeout_delete(m_tm_tcb *tm)
 			{
 				prev->next = t->next;
 			}
+			M_EXIT_CRITICAL();
 			return 0;
 		}
 	}
+	
+	M_EXIT_CRITICAL();
 	return -1;
 }
 
@@ -106,10 +113,13 @@ void m_timeout_process(void)
 	while(tmptm && (diff >= tmptm->time))
 	{
 		diff -= tmptm->time;
+		
+		M_ENTER_CRITICAL();
 		m_timeouts_last_time += tmptm->time;
 		ptm_list_header = tmptm->next;
+		M_EXIT_CRITICAL();
 		
-    if(tmptm->period)
+		if(tmptm->period)
 		{
 			tmptm->time = tmptm->period;
 			m_timeout_add(tmptm);
