@@ -28,7 +28,7 @@
 #include "app_flash.h"
 #include "ymodem.h"
 #include "string.h"
-#include "common.h"
+#include "m_common.h"
 #include "m_printf.h"
 #include "m_iap.h"
 /* Private typedef -----------------------------------------------------------*/
@@ -94,21 +94,13 @@ static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
   {
     case SOH:
       packet_size = PACKET_SIZE;
-      DEBUG("Rcv SOH; Packet size = %d.\r\n",packet_size);
+//      DEBUG("Rcv SOH; Packet size = %d.\r\n",packet_size);
       break;
     case STX:
       packet_size = PACKET_1K_SIZE;
-      DEBUG("Rcv STX; Packet size = %d.\r\n",packet_size);
+//      DEBUG("Rcv STX; Packet size = %d.\r\n",packet_size);
       break;
     case EOT:
-//      if(eot_flag == 0)
-//      {
-//        Send_Byte(NAK);
-//        eot_flag =1;
-//        DEBUG("Rcv EOT, Send NAK.\r\n");
-//        goto receive_byte_label;
-//      }
-//      eot_flag = 0;
       DEBUG("Rcv EOT2\r\n");
       return 0;
     case CA:
@@ -135,11 +127,14 @@ static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
   {
     if (Receive_Byte(data + i, timeout) != 0)
     {
+			DEBUG("Pcv timeout\r\n");
       return -1;
     }
+		//DEBUG("%d",*(data+i));
   }
   if (data[PACKET_SEQNO_INDEX] != ((data[PACKET_SEQNO_COMP_INDEX] ^ 0xff) & 0xff))
   {
+		DEBUG("PACKET_SEQNO_INDEX, = %d %d\r\n", data[PACKET_SEQNO_INDEX],data[PACKET_SEQNO_COMP_INDEX]);
     return -1;
   }
   *length = packet_size;
@@ -186,7 +181,7 @@ int32_t Ymodem_Receive (uint8_t *buf)
               if ((packet_data[PACKET_SEQNO_INDEX] & 0xff) != (packets_received & 0xff))
               {
                 Send_Byte(NAK);
-                DEBUG("send NAK \r\n");
+                DEBUG("send NAK,Packet: \r\n");
               }
               else
               {
@@ -220,10 +215,10 @@ int32_t Ymodem_Receive (uint8_t *buf)
                     }
                     /* erase user application area */
                     m_iap_status = M_DOWNLOAD;
-                    FLASH_If_Erase(APPLICATION_ADDRESS);
+                    FLASH_If_Erase(APP_START_SECTOR);
                     Send_Byte(ACK);
                     Send_Byte(CRC16);
-                    DEBUG("send ACK CRC16 \r\n");
+                    DEBUG("send ACK CRC16,FileName = %s, size = %s \r\n",FileName,file_size);
                   }
                   /* Filename packet is empty, end session */
                   else

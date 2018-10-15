@@ -7,6 +7,7 @@
 
 
 #include "stm32f4xx_hal.h"
+#include "m_common.h"
 //定时器回调函数
 typedef void (* m_timeout_handler)(void *arg);
 

@@ -34,7 +34,16 @@ void mfunc_autoboot_timeout()
 	{
 		ns_time ++;
 		if(ns_time > AUTOBOOT_TIME)
+		{
 			m_iap_status = M_BOOTING;
+//      m_printf("\r\nExecute the new program ... \r\n\n");
+//      JumpAddress = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
+//      /* Jump to user application */
+//      Jump_To_Application = (pFunction) JumpAddress;
+//      /* Initialize user application's Stack Pointer */
+//      __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
+//      Jump_To_Application();
+		}
 	}
 	else 
 		ns_time = 0;
@@ -81,21 +90,24 @@ static void printf_menu(void)
   
 }
 
+
 void SerialDownload(void)
 {
   
 uint8_t Number[10] = "          ";
   int32_t Size = 0;
-
+	uint32_t tick = 0;
   m_printf("Waiting for the file to be sent ... (press 'a' to abort)\n\r");
   Size = Ymodem_Receive(&tab_1024[0]);
+	tick = HAL_GetTick();
+	while(HAL_GetTick() - tick < 5000);
   if (Size > 0)
   {
     m_printf("\n\n\r Programming Completed Successfully!\n\r--------------------------------\r\n Name: ");
-    m_printf(FileName);
+    m_printf("%s",FileName);
     Int2Str(Number, Size);
     m_printf("\n\r Size: ");
-    m_printf(Number);
+    m_printf("%d",Number);
     m_printf(" Bytes\r\n");
     m_printf("-------------------\n");
   }
@@ -117,7 +129,29 @@ uint8_t Number[10] = "          ";
   }
 
 }
+void SerialUpload(void)
+{
+  uint8_t key, status = 0 ; 
 
+  m_printf("\n\n\rSelect Receive File\n\r");
+
+	m_scanf("%c",&key);
+	
+  if (key == CRC16)
+  {
+    /* Transmit the flash image through ymodem protocol */
+    status = Ymodem_Transmit((uint8_t*)APPLICATION_ADDRESS, (const uint8_t*)"UploadedFlashImage.bin", USER_FLASH_SIZE);
+
+    if (status != 0) 
+    {
+      m_printf("\n\rError Occurred while Transmitting File\n\r");
+    }
+    else
+    {
+      m_printf("\n\rFile uploaded successfully \n\r");
+    }
+  }
+}
 
 void m_iap_process(void)
 {
@@ -132,16 +166,20 @@ void m_iap_process(void)
     if(key == '1')
     {
       m_printf("\r\nDownload IMage to the OBJ Internal Flash ... \r\n\n");
-      m_iap_status = M_WAITING_FILENAME; //准备升级，需要接收文件，此时应该定时发送 0x43 'C',请求发送端发送YMODEM报头
+      m_iap_status = M_WAITING; //准备升级，需要接收文件
       SerialDownload();
-      
+			//m_iap_status = M_IDLE;
     }
     if(key == '2')
     {
       m_printf("\r\nUpload IMage from the OBJ Internal Flash ... \r\n\n");
+			m_iap_status = M_UPLOAD;
+			SerialUpload();
+			//m_iap_status = M_WAITING;
     }
-    if(key == '3')
+    if((key == '3') || (m_iap_status==M_BOOTING))
     {
+			m_iap_status = M_BOOTING;
       m_printf("\r\nExecute the new program ... \r\n\n");
       JumpAddress = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
       /* Jump to user application */
@@ -153,10 +191,12 @@ void m_iap_process(void)
     if((key == '4')&& (FlashProtection ==1))
     {
       m_printf("\r\nDisable the write protection ... \r\n\n");
+			m_iap_status = M_WAITING;
     }
     if(key == '0')
     {
       printf_menu();
+			m_iap_status = M_WAITING;
     }
   }
   

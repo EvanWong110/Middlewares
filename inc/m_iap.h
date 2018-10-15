@@ -13,7 +13,7 @@
 
 typedef enum {
 	M_IDLE = 0,
-	M_WAITING_FILENAME,
+	M_WAITING,
 	M_DOWNLOAD,
 	M_PROGRAM,
 	M_UPLOAD,
