@@ -467,7 +467,7 @@ void Ymodem_SendPacket(uint8_t *data, uint16_t length)
 uint8_t Ymodem_Transmit (uint8_t *buf, const uint8_t* sendFileName, uint32_t sizeFile)
 {
   
-  uint8_t packet_data[PACKET_1K_SIZE + PACKET_OVERHEAD];
+  static uint8_t packet_data[PACKET_1K_SIZE + PACKET_OVERHEAD];
   uint8_t filename[FILE_NAME_LENGTH];
   uint8_t *buf_ptr, tempCheckSum;
   uint16_t tempCRC;

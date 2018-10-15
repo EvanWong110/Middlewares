@@ -80,15 +80,14 @@ void m_iap_init(void)
 
 static void printf_menu(void)
 {
-  m_printf("\r\n%d milliseconds no operation will automatically boot the system\r\n\n", AUTOBOOT_TIME*M_IAP_TICK);
-	m_printf("\r\n=================M_IAP MAIN MENU_v0.1================\r\n\n");
-  m_printf("Show the main menu -----------------------------0\r\n\n");
-	m_printf("Download IMage to the OBJ Internal Flash -------1\r\n\n");
-	m_printf("Upload IMage from the OBJ Internal Flash -------2\r\n\n");
-	m_printf("Execute the new program ------------------------3\r\n\n");
+	m_printf("\r\n=================M_IAP MAIN MENU_v0.1==================\r\n\n");
+  m_printf("Show the main menu ------------------------------------0\r\n\n");
+	m_printf("Download IMage(*.bin) to the OBJ Internal Flash -------1\r\n\n");
+	m_printf("Upload IMage(*.bin) from the OBJ Internal Flash -------2\r\n\n");
+	m_printf("Execute the new program -------------------------------3\r\n\n");
   if(FlashProtection == 1)
     m_printf("Disable the write protection ------------------------4\r\n\n");
-  m_printf("=====================================================\r\n\n");
+  m_printf("=======================================================\r\n\n");
   
 }
 
@@ -137,7 +136,8 @@ void SerialUpload(void)
 
   m_printf("\n\n\rSelect Receive File\n\r");
 
-	m_scanf("%c",&key);
+//	m_scanf("%c",&key);
+	Receive_Byte(&key,HAL_MAX_DELAY);
 	
   if (key == CRC16)
   {
@@ -160,24 +160,26 @@ void m_iap_process(void)
   volatile uint8_t key;
   m_iap_init();
   
+	m_printf("\r\n%d milliseconds no operation will automatically boot the system\r\n\n", AUTOBOOT_TIME*M_IAP_TICK);
+	
 	printf_menu();
 
   while(1)
   {
 		key = 0;
-		Receive_Byte(&key,100)!=0;
+		Receive_Byte(&key,100);
 			//continue;
     //m_scanf("%c",&key); //完全阻塞进程，中断中也不能使用printf
     if(key == '1')
     {
-      m_printf("\r\nDownload IMage to the OBJ Internal Flash ... \r\n\n");
+      m_printf("\r\nDownload IMage(*.bin) to the OBJ Internal Flash ... \r\n\n");
       m_iap_status = M_WAITING; //准备升级，需要接收文件
       SerialDownload();
 			//m_iap_status = M_IDLE;
     }
     if(key == '2')
     {
-      m_printf("\r\nUpload IMage from the OBJ Internal Flash ... \r\n\n");
+      m_printf("\r\nUpload IMage(*.bin) from the OBJ Internal Flash ... \r\n\n");
 			m_iap_status = M_UPLOAD;
 			SerialUpload();
 			//m_iap_status = M_WAITING;
