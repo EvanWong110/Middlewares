@@ -35,7 +35,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t FileName[];
+uint8_t FileName[FILE_NAME_LENGTH];
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -47,13 +47,27 @@ uint8_t FileName[];
   * @retval 0: Byte received
   *        -1: Timeout
   */
-extern uint8_t console_readc(uint8_t *c, uint32_t timeout);
-extern uint8_t console_writec(uint8_t *c);
 
 extern MENUM_IAP_STATUS m_iap_status;
-static  int32_t Receive_Byte (uint8_t *c, uint32_t timeout)
+extern UART_HandleTypeDef huart1;
+int32_t Receive_Byte (uint8_t *c, uint32_t Timeout)
 {
-  return console_readc(c,timeout);
+  //return HAL_UART_Receive(&huart1,(uint8_t*)c,1,timeout);
+	uint32_t Tickstart  = HAL_GetTick();
+	while((__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE) ? SET : RESET) == RESET)
+	{
+		 if(Timeout != HAL_MAX_DELAY)
+		 {
+				if((Timeout == 0U)||((HAL_GetTick() - Tickstart ) > Timeout))
+				{
+					return -1;
+				}
+			}
+	}
+	
+	*c = (uint8_t)(huart1.Instance->DR & (uint8_t)0x00FF);
+	
+	return 0;
 }
 
 /**
@@ -63,7 +77,15 @@ static  int32_t Receive_Byte (uint8_t *c, uint32_t timeout)
   */
 static uint32_t Send_Byte (uint8_t c)
 {
-  return console_writec(&c);
+  //return HAL_UART_Transmit(&huart1,(uint8_t*)c,1,HAL_MAX_DELAY);
+	while((__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TXE) ? SET : RESET) == RESET)
+	{
+	}
+	
+	 huart1.Instance->DR = (c & (uint8_t)0xFF);
+	
+	return 0;
+	
 }
 
 /**
@@ -80,33 +102,26 @@ static uint32_t Send_Byte (uint8_t c)
   */
 static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
 {
-//  static uint8_t eot_flag=0;
   uint16_t i, packet_size;
   uint8_t c;
   *length = 0;
-//  receive_byte_label:
   if (Receive_Byte(&c, timeout) != 0)
   {
-    DEBUG("un rcv packet;\r\n");
     return -1;
   }
   switch (c)
   {
     case SOH:
       packet_size = PACKET_SIZE;
-//      DEBUG("Rcv SOH; Packet size = %d.\r\n",packet_size);
       break;
     case STX:
       packet_size = PACKET_1K_SIZE;
-//      DEBUG("Rcv STX; Packet size = %d.\r\n",packet_size);
       break;
     case EOT:
-      DEBUG("Rcv EOT2\r\n");
       return 0;
     case CA:
       if ((Receive_Byte(&c, timeout) == 0) && (c == CA))
       {
-        DEBUG("Rcv CA; c = %c.\r\n",c);
         *length = -1;
         return 0;
       }
@@ -116,10 +131,8 @@ static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
       }
     case ABORT1:
     case ABORT2:
-      DEBUG("RCV ABORT \r\n");
       return 1;
     default:
-      DEBUG("Rcv undef Packet; c = %d.\r\n",c);
       return -1;
   }
   *data = c;
@@ -127,19 +140,18 @@ static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
   {
     if (Receive_Byte(data + i, timeout) != 0)
     {
-			DEBUG("Pcv timeout\r\n");
       return -1;
     }
-		//DEBUG("%d",*(data+i));
   }
   if (data[PACKET_SEQNO_INDEX] != ((data[PACKET_SEQNO_COMP_INDEX] ^ 0xff) & 0xff))
   {
-		DEBUG("PACKET_SEQNO_INDEX, = %d %d\r\n", data[PACKET_SEQNO_INDEX],data[PACKET_SEQNO_COMP_INDEX]);
     return -1;
   }
   *length = packet_size;
   return 0;
 }
+
+static uint8_t packet_data[PACKET_1K_SIZE + PACKET_OVERHEAD], file_size[FILE_SIZE_LENGTH];
 
 /**
   * @brief  Receive a file using the ymodem protocol.
@@ -148,7 +160,8 @@ static int32_t Receive_Packet (uint8_t *data, int32_t *length, uint32_t timeout)
   */
 int32_t Ymodem_Receive (uint8_t *buf)
 {
-  uint8_t packet_data[PACKET_1K_SIZE + PACKET_OVERHEAD], file_size[FILE_SIZE_LENGTH], *file_ptr, *buf_ptr;
+
+	uint8_t *file_ptr, *buf_ptr;
   int32_t i, packet_length, session_done, file_done, packets_received, errors, session_begin, size = 0;
   uint32_t flashdestination, ramsource;
 
@@ -168,20 +181,17 @@ int32_t Ymodem_Receive (uint8_t *buf)
             /* Abort by sender */
             case - 1:
               Send_Byte(ACK);
-              DEBUG("send ACK \r\n");
               return 0;
             /* End of transmission */
             case 0:
               Send_Byte(ACK);
               file_done = 1;
-              DEBUG("send ACK \r\n");
               break;
             /* Normal packet */
             default:
               if ((packet_data[PACKET_SEQNO_INDEX] & 0xff) != (packets_received & 0xff))
               {
                 Send_Byte(NAK);
-                DEBUG("send NAK,Packet: \r\n");
               }
               else
               {
@@ -210,7 +220,6 @@ int32_t Ymodem_Receive (uint8_t *buf)
                       /* End session */
                       Send_Byte(CA);
                       Send_Byte(CA);
-                      DEBUG("send CA \r\n");
                       return -1;
                     }
                     /* erase user application area */
@@ -218,7 +227,6 @@ int32_t Ymodem_Receive (uint8_t *buf)
                     FLASH_If_Erase(APP_START_SECTOR);
                     Send_Byte(ACK);
                     Send_Byte(CRC16);
-                    DEBUG("send ACK CRC16,FileName = %s, size = %s \r\n",FileName,file_size);
                   }
                   /* Filename packet is empty, end session */
                   else
@@ -226,7 +234,6 @@ int32_t Ymodem_Receive (uint8_t *buf)
                     Send_Byte(ACK);
                     file_done = 1;
                     session_done = 1;
-                    DEBUG("send ACK \r\n");
                     break;
                   }
                 }
@@ -240,14 +247,12 @@ int32_t Ymodem_Receive (uint8_t *buf)
                   if (FLASH_If_Write(&flashdestination, (uint32_t*) ramsource, (uint16_t) packet_length/4)  == 0)
                   {
                     Send_Byte(ACK);
-                    DEBUG("send ACK \r\n");
                   }
                   else /* An error occurred while writing to Flash memory */
                   {
                     /* End session */
                     Send_Byte(CA);
                     Send_Byte(CA);
-                    DEBUG("send CAx2 \r\n");
                     return -2;
                   }
                 }
@@ -259,7 +264,6 @@ int32_t Ymodem_Receive (uint8_t *buf)
         case 1:
           Send_Byte(CA);
           Send_Byte(CA);
-          DEBUG("send CAx2 \r\n");
           return -3;
         default:
           if (session_begin > 0)
@@ -270,11 +274,9 @@ int32_t Ymodem_Receive (uint8_t *buf)
           {
             Send_Byte(CA);
             Send_Byte(CA);
-            DEBUG("send CAx2 \r\n");
             return 0;
           }
           Send_Byte(CRC16);
-          DEBUG("send CRC16 \r\n");
           break;
       }
       if (file_done != 0)
