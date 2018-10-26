@@ -1,36 +1,28 @@
 /**
   ******************************************************************************
-  * @file    STM32F4xx_IAP/inc/common.h 
-  * @author  MCD Application Team
+  * @file    ../middlewares/inc/m_common.h
+  * @author  yhangzzz
   * @version V1.0.0
-  * @date    10-October-2011
-  * @brief   This file provides all the headers of the common functions.
-  ******************************************************************************
-  * @attention
-  *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-  *
-  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
+  * @date    2010.10.22
+  * @brief   m_common.h
   ******************************************************************************
   */ 
+
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __COMMON_H
 #define __COMMON_H
 
+/* config */
+#define M_COMMON_INT2STR 0
+#define M_COMMON_STR2INT 0
+
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+#include "typesdef.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
-/* Constants used by Serial Command Line Mode */
-#define CMD_STRING_SIZE       128
 
 /* Common routines */
 #define IS_AF(c)  ((c >= 'A') && (c <= 'F'))
@@ -48,8 +40,13 @@
 #define M_EXIT_CRITICAL()
 
 /* Exported functions ------------------------------------------------------- */
+#if M_COMMON_INT2STR
 void Int2Str(uint8_t* str,int32_t intnum);
+#endif
+
+#if M_COMMON_STR2INT
 uint32_t Str2Int(uint8_t *inputstr,int32_t *intnum);
+#endif
 
 #endif  /* __COMMON_H */
 

@@ -1,10 +1,16 @@
 /**
-app_scheduler.c
-**/
+  ******************************************************************************
+  * @file    ../middlewares/src/m_scheduler.c
+  * @author  yhangzzz
+  * @version V1.0.0
+  * @date    2010.10.22
+  * @brief   m_scheduler.c
+  ******************************************************************************
+  */ 
 
 
-#if (defined(APP_SCHEDULER_ENABLED) && APP_SCHEDULER_ENABLED) ? 1 : 0
-#include "app_scheduler.h"
+#if (defined(M_SCHEDULER_ENABLED) && M_SCHEDULER_ENABLED) ? 1 : 0
+#include "m_scheduler.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -14,11 +20,11 @@ app_scheduler.c
 /**@brief Structure for holding a scheduled event header. */
 typedef struct
 {
-    app_sched_event_handler_t handler;          /**< Pointer to event handler to receive the event. */
+    m_sched_event_handler_t handler;          /**< Pointer to event handler to receive the event. */
     uint16_t                  event_data_size;  /**< Size of event data. */
 } event_header_t;
 
-STATIC_ASSERT(sizeof(event_header_t) <= APP_SCHED_EVENT_HEADER_SIZE);
+STATIC_ASSERT(sizeof(event_header_t) <= M_SCHED_EVENT_HEADER_SIZE);
 
 static event_header_t * m_queue_event_headers;  /**< Array for holding the queue event headers. */
 static uint8_t        * m_queue_event_data;     /**< Array for holding the queue event data. */
@@ -27,11 +33,11 @@ static volatile uint8_t m_queue_end_index;      /**< Index of queue entry at the
 static uint16_t         m_queue_event_size;     /**< Maximum event size in queue. */
 static uint16_t         m_queue_size;           /**< Number of queue entries. */
 
-#if APP_SCHEDULER_WITH_PROFILER
+#if M_SCHEDULER_WITH_PROFILER
 static uint16_t m_max_queue_utilization;    /**< Maximum observed queue utilization. */
 #endif
 
-#if APP_SCHEDULER_WITH_PAUSE
+#if M_SCHEDULER_WITH_PAUSE
 static uint32_t m_scheduler_paused_counter = 0; /**< Counter storing the difference between pausing
                                                      and resuming the scheduler. */
 #endif
@@ -48,27 +54,27 @@ static __INLINE uint8_t next_index(uint8_t index)
 }
 
 
-static __INLINE uint8_t app_sched_queue_full()
+static __INLINE uint8_t m_sched_queue_full()
 {
   uint8_t tmp = m_queue_start_index;
   return next_index(m_queue_end_index) == tmp;
 }
 
 /**@brief Macro for checking if a queue is full. */
-#define APP_SCHED_QUEUE_FULL() app_sched_queue_full()
+#define M_SCHED_QUEUE_FULL() m_sched_queue_full()
 
 
-static __INLINE uint8_t app_sched_queue_empty()
+static __INLINE uint8_t m_sched_queue_empty()
 {
   uint8_t tmp = m_queue_start_index;
   return m_queue_end_index == tmp;
 }
 
 /**@brief Macro for checking if a queue is empty. */
-#define APP_SCHED_QUEUE_EMPTY() app_sched_queue_empty()
+#define M_SCHED_QUEUE_EMPTY() m_sched_queue_empty()
 
 
-uint32_t app_sched_init(uint16_t event_size, uint16_t queue_size, void * p_event_buffer)
+uint32_t m_sched_init(uint16_t event_size, uint16_t queue_size, void * p_event_buffer)
 {
     uint16_t data_start_index = (queue_size + 1) * sizeof(event_header_t);
 
@@ -86,7 +92,7 @@ uint32_t app_sched_init(uint16_t event_size, uint16_t queue_size, void * p_event
     m_queue_event_size    = event_size;
     m_queue_size          = queue_size;
 
-#if APP_SCHEDULER_WITH_PROFILER
+#if M_SCHEDULER_WITH_PROFILER
     m_max_queue_utilization = 0;
 #endif
 
@@ -94,7 +100,7 @@ uint32_t app_sched_init(uint16_t event_size, uint16_t queue_size, void * p_event
 }
 
 
-uint16_t app_sched_queue_space_get()
+uint16_t m_sched_queue_space_get()
 {
     uint16_t start = m_queue_start_index;
     uint16_t end   = m_queue_end_index;
@@ -104,7 +110,7 @@ uint16_t app_sched_queue_space_get()
 }
 
 
-#if APP_SCHEDULER_WITH_PROFILER
+#if M_SCHEDULER_WITH_PROFILER
 static void queue_utilization_check(void)
 {
     uint16_t start = m_queue_start_index;
@@ -118,16 +124,16 @@ static void queue_utilization_check(void)
     }
 }
 
-uint16_t app_sched_queue_utilization_get(void)
+uint16_t m_sched_queue_utilization_get(void)
 {
     return m_max_queue_utilization;
 }
-#endif // APP_SCHEDULER_WITH_PROFILER
+#endif // M_SCHEDULER_WITH_PROFILER
 
 
-uint32_t app_sched_event_put(void const              * p_event_data,
+uint32_t m_sched_event_put(void const              * p_event_data,
                              uint16_t                  event_data_size,
-                             app_sched_event_handler_t handler)
+                             m_sched_event_handler_t handler)
 {
     uint32_t err_code;
 
@@ -137,12 +143,12 @@ uint32_t app_sched_event_put(void const              * p_event_data,
 
         CRITICAL_REGION_ENTER();
 
-        if (!APP_SCHED_QUEUE_FULL())
+        if (!M_SCHED_QUEUE_FULL())
         {
             event_index       = m_queue_end_index;
             m_queue_end_index = next_index(m_queue_end_index);
 
-        #if APP_SCHEDULER_WITH_PROFILER
+        #if M_SCHEDULER_WITH_PROFILER
             // This function call must be protected with critical region because
             // it modifies 'm_max_queue_utilization'.
             queue_utilization_check();
@@ -184,8 +190,8 @@ uint32_t app_sched_event_put(void const              * p_event_data,
 }
 
 
-#if APP_SCHEDULER_WITH_PAUSE
-void app_sched_pause(void)
+#if M_SCHEDULER_WITH_PAUSE
+void m_sched_pause(void)
 {
     CRITICAL_REGION_ENTER();
 
@@ -196,7 +202,7 @@ void app_sched_pause(void)
     CRITICAL_REGION_EXIT();
 }
 
-void app_sched_resume(void)
+void m_sched_resume(void)
 {
     CRITICAL_REGION_ENTER();
 
@@ -206,7 +212,7 @@ void app_sched_resume(void)
     }
     CRITICAL_REGION_EXIT();
 }
-#endif //APP_SCHEDULER_WITH_PAUSE
+#endif //M_SCHEDULER_WITH_PAUSE
 
 
 /**@brief Function for checking if scheduler is paused which means that should break processing
@@ -214,9 +220,9 @@ void app_sched_resume(void)
  *
  * @return    Boolean value - true if scheduler is paused, false otherwise.
  */
-static __INLINE bool is_app_sched_paused(void)
+static __INLINE bool is_m_sched_paused(void)
 {
-#if APP_SCHEDULER_WITH_PAUSE
+#if M_SCHEDULER_WITH_PAUSE
     return (m_scheduler_paused_counter > 0);
 #else
     return false;
@@ -224,9 +230,9 @@ static __INLINE bool is_app_sched_paused(void)
 }
 
 
-void app_sched_execute(void)
+void m_sched_execute(void)
 {
-    while (!is_app_sched_paused() && !APP_SCHED_QUEUE_EMPTY())
+    while (!is_m_sched_paused() && !M_SCHED_QUEUE_EMPTY())
     {
         // Since this function is only called from the main loop, there is no
         // need for a critical region here, however a special care must be taken
@@ -235,7 +241,7 @@ void app_sched_execute(void)
 
         void * p_event_data;
         uint16_t event_data_size;
-        app_sched_event_handler_t event_handler;
+        m_sched_event_handler_t event_handler;
 
         p_event_data = &m_queue_event_data[event_index * m_queue_event_size];
         event_data_size = m_queue_event_headers[event_index].event_data_size;
@@ -249,4 +255,4 @@ void app_sched_execute(void)
         m_queue_start_index = next_index(m_queue_start_index);
     }
 }
-#endif //#if (defined(APP_SCHEDULER_ENABLED) && APP_SCHEDULER_ENABLED)?1:0
+#endif //#if (defined(M_SCHEDULER_ENABLED) && M_SCHEDULER_ENABLED)?1:0

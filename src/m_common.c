@@ -1,27 +1,12 @@
 /**
   ******************************************************************************
-  * @file    STM32F4xx_IAP/src/common.c 
-  * @author  MCD Application Team
+  * @file    ../middlewares/src/m_common.c
+  * @author  yhangzzz
   * @version V1.0.0
-  * @date    10-October-2011
-  * @brief   This file provides all the common functions.
-  ******************************************************************************
-  * @attention
-  *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-  *
-  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
+  * @date    2010.10.22
+  * @brief   m_common.c
   ******************************************************************************
   */ 
-
-/** @addtogroup STM32F4xx_IAP
-  * @{
-  */
 
 /* Includes ------------------------------------------------------------------*/
 #include "m_common.h"
@@ -33,6 +18,7 @@
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
+#if M_COMMON_INT2STR
 /**
   * @brief  Convert an Integer to a string
   * @param  str: The string
@@ -41,7 +27,8 @@
   */
 void Int2Str(uint8_t* str, int32_t intnum)
 {
-  uint32_t i, Div = 1000000000, j = 0, Status = 0;
+  uint8_t i, j = 0, Status = 0;
+  uint32_t Div = 10000;
 
   for (i = 0; i < 10; i++)
   {
@@ -60,6 +47,10 @@ void Int2Str(uint8_t* str, int32_t intnum)
   }
 }
 
+#endif
+
+
+#if M_COMMON_STR2INT
 /**
   * @brief  Convert a string to an integer
   * @param  inputstr: The string to be converted
@@ -69,7 +60,7 @@ void Int2Str(uint8_t* str, int32_t intnum)
   */
 uint32_t Str2Int(uint8_t *inputstr, int32_t *intnum)
 {
-  uint32_t i = 0, res = 0;
+  uint8_t i = 0, res = 0;
   uint32_t val = 0;
 
   if (inputstr[0] == '0' && (inputstr[1] == 'x' || inputstr[1] == 'X'))
@@ -149,6 +140,6 @@ uint32_t Str2Int(uint8_t *inputstr, int32_t *intnum)
 
   return res;
 }
-
+#endif
 
 
