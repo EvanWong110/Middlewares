@@ -26,7 +26,9 @@ int8_t m_timeout_add(m_tm_tcb *tm)
 	m_tm_tcb *p;
 	
 	now = tm_get_now();
-	
+    //如果首次延时未设置，则设为周期时间
+	if(tm->time == 0)
+        tm->time = tm->period;
 	//链表为空
 	M_ENTER_CRITICAL();
 	if(ptm_list_header == NULL)

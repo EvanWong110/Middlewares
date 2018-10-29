@@ -12,12 +12,13 @@
 #define M_SCHEDULER_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define M_SCHED_EVENT_HEADER_SIZE 8       /**< Size of m_scheduler.event_header_t (only for use inside M_SCHED_BUF_SIZE()). */
+#define M_SCHED_EVENT_HEADER_SIZE 8      /**< Size of m_scheduler.event_header_t (only for use inside M_SCHED_BUF_SIZE()). */
 
 
 
@@ -74,7 +75,7 @@ extern "C" {
  *
  * @return      TRUE if pointer is aligned to a 4 byte boundary, FALSE otherwise.
  */
-static __INLINE bool is_word_aligned(void const* p)
+static inline bool is_word_aligned(void const* p)
 {
     return (((uintptr_t)p & 0x03) == 0);
 }

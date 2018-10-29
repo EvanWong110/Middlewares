@@ -7,9 +7,9 @@
   * @brief   m_scheduler.c
   ******************************************************************************
   */ 
-
-
+#include "m_common.h"
 #if (defined(M_SCHEDULER_ENABLED) && M_SCHEDULER_ENABLED) ? 1 : 0
+
 #include "m_scheduler.h"
 #include <stdlib.h>
 #include <stdint.h>
@@ -48,13 +48,13 @@ static uint32_t m_scheduler_paused_counter = 0; /**< Counter storing the differe
  *
  * @return      New (incremented) index.
  */
-static __INLINE uint8_t next_index(uint8_t index)
+static inline uint8_t next_index(uint8_t index)
 {
     return (index < m_queue_size) ? (index + 1) : 0;
 }
 
 
-static __INLINE uint8_t m_sched_queue_full()
+static inline uint8_t m_sched_queue_full()
 {
   uint8_t tmp = m_queue_start_index;
   return next_index(m_queue_end_index) == tmp;
@@ -64,7 +64,7 @@ static __INLINE uint8_t m_sched_queue_full()
 #define M_SCHED_QUEUE_FULL() m_sched_queue_full()
 
 
-static __INLINE uint8_t m_sched_queue_empty()
+static inline uint8_t m_sched_queue_empty()
 {
   uint8_t tmp = m_queue_start_index;
   return m_queue_end_index == tmp;
@@ -220,7 +220,7 @@ void m_sched_resume(void)
  *
  * @return    Boolean value - true if scheduler is paused, false otherwise.
  */
-static __INLINE bool is_m_sched_paused(void)
+static inline bool is_m_sched_paused(void)
 {
 #if M_SCHEDULER_WITH_PAUSE
     return (m_scheduler_paused_counter > 0);

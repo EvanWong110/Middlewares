@@ -17,8 +17,9 @@
 #define M_COMMON_INT2STR 0
 #define M_COMMON_STR2INT 0
 
+#define M_SCHEDULER_ENABLED 1
 /* Includes ------------------------------------------------------------------*/
-#include "typesdef.h"
+//#include "typesdef.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
@@ -38,6 +39,10 @@
 #define M_ENTER_CRITICAL()
 
 #define M_EXIT_CRITICAL()
+
+//静态断言
+#define STATIC_ASSERT(bExpression) typedef uint8_t assert_failed[(bExpression)?1 : -1]
+
 
 /* Exported functions ------------------------------------------------------- */
 #if M_COMMON_INT2STR
