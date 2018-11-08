@@ -10,7 +10,8 @@
 
 #define AUTOBOOT_TIME  (50)
 
-
+extern int32_t Receive_Byte (uint8_t *c, uint32_t Timeout);
+extern uint32_t Send_Byte (uint8_t c);
 extern uint8_t FileName[FILE_NAME_LENGTH];
 
 uint8_t tab_1024[1024] =
@@ -25,7 +26,88 @@ volatile uint32_t FlashProtection = 0;
 
 MENUM_IAP_STATUS m_iap_status = M_IDLE;
 
+//支持的指令
+int32_t WrAtAddrFunc(int32_t argc, uint8_t (*argv)[]);
+int32_t RdAtAddrFunc(int32_t argc, uint8_t (*argv)[]);
 
+int32_t WrAtAddrFunc(int32_t argc, uint8_t (*argv)[])
+{
+    int32_t addr=0, value=0;
+    uint8_t (*p)[PARA_LENGTH] = (uint8_t (*)[PARA_LENGTH])argv;
+    if(argc != 2)
+    {
+        m_printf("\r\nError para number\r\n");
+        return -1;
+    }
+    else
+    {
+        if(Str2Int(p[0],&addr) && Str2Int(p[1],&value))
+        {
+            if(0==EE_WriteVariable((uint16_t)addr,(uint16_t)value))
+            {
+                m_printf("\r\nWrite value success\r\n");
+                return 0;
+            }
+            else
+                m_printf("\r\nWrite value failure\r\n");
+        }
+        else
+        {
+            m_printf("\r\nError parameter!\r\n");
+            return -1;  
+        }
+    }
+}
+
+
+int32_t RdAtAddrFunc(int32_t argc, uint8_t (*argv)[])
+{
+    int32_t addr=0;
+    uint16_t value=0;
+    int8_t status;
+    
+    uint8_t (*p)[PARA_LENGTH] = (uint8_t (*)[PARA_LENGTH])argv;
+    
+    if(argc != 1)
+		{
+				m_printf("\r\nError para number\r\n");
+        return -1;
+		}
+    else
+    {
+        if(Str2Int(p[0],&addr))
+        {
+            status = EE_ReadVariable((uint16_t)addr,&value);
+            if(status != 0)
+            {
+                m_printf("\r\nValue at addr:%d not found!\r\n",addr);
+                return -1;
+            }
+        }
+        else
+        {
+            m_printf("\r\nError parameter!\r\n");
+            return -1;  
+        }
+    }
+    m_printf("\r\nRead value = %d, at addr= %d\r\n",value, addr);
+    return 0;
+}
+
+
+
+sSET_TCB sWr = {"wr",sWrAtAddr,WrAtAddrFunc};
+
+sSET_TCB sRd = {"rd",sRdAtAddr,RdAtAddrFunc};
+
+uint16_t sCount = 2;
+sSET_TCB *sList[] = {&sWr,&sRd};
+
+
+#define EEPROMTEST 1
+#if EEPROMTEST
+
+#endif 
 
 //n秒无操作进入BOOT状态
 void mfunc_autoboot_timeout()
@@ -63,15 +145,15 @@ void tm_iap_tick_handler(void *arg)
 //flash解锁，初始化串口及定时器倒计时,时间到就进入APP
 void m_iap_init(void)
 {
-  flash_if_init();
-  
+    flash_if_init();
+    EE_Init();
 	m_iap_status = M_IDLE;
 	
 	tm_iap_tick.phandler = tm_iap_tick_handler;
 	tm_iap_tick.time = M_IAP_TICK;
 	tm_iap_tick.period = M_IAP_TICK;
 	m_timeout_add(&tm_iap_tick);
-
+    
   if(flash_if_getWRP() == 1)
     FlashProtection =1;
   else
@@ -81,13 +163,15 @@ void m_iap_init(void)
 static void printf_menu(void)
 {
 	m_printf("\r\n=================M_IAP MAIN MENU_v0.1==================\r\n\n");
-  m_printf("Show the main menu ------------------------------------0\r\n\n");
+    m_printf("Show the main menu ------------------------------------0\r\n\n");
 	m_printf("Download IMage(*.bin) to the OBJ Internal Flash -------1\r\n\n");
 	m_printf("Upload IMage(*.bin) from the OBJ Internal Flash -------2\r\n\n");
 	m_printf("Execute the new program -------------------------------3\r\n\n");
-  if(FlashProtection == 1)
-    m_printf("Disable the write protection ------------------------4\r\n\n");
-  m_printf("=======================================================\r\n\n");
+    m_printf("Set private parameter   -------------------------------4\r\n\n");
+    m_printf("EEPROM TEST             -------------------------------5\r\n\n");
+    if(FlashProtection == 1)
+        m_printf("Disable the write protection ------------------------9\r\n\n");
+    m_printf("=======================================================\r\n\n");
   
 }
 
@@ -154,7 +238,90 @@ void SerialUpload(void)
     }
   }
 }
-extern int32_t Receive_Byte (uint8_t *c, uint32_t Timeout);
+
+uint16_t Receive_string()
+{
+    for(uint16_t i=0; i<1024; i++)
+    {
+        Receive_Byte(&tab_1024[i],HAL_MAX_DELAY);
+
+        Send_Byte(tab_1024[i]);
+        //使用空格替代\r \t;
+        if((tab_1024[i] == '\n')||(tab_1024[i] == '\t'))
+            tab_1024[i] = ' ';
+        
+        if(tab_1024[i] == '\r')
+        {
+            tab_1024[i++] = ' ';
+            tab_1024[i] = 0;
+            return i;
+        }
+        
+        if(i>0)
+        {
+            //消除多余空格及回车换行符
+            if((tab_1024[i] == ' ')&&(tab_1024[i-1]==' '))
+                i--;
+        }
+    }
+			return 0;
+}
+
+//内部指令解析，并执行相应函数
+void SetParameter()
+{
+    uint16_t setPos,paraPos;
+	
+    uint16_t len;
+	
+    int16_t strPos,strPos_bk;
+    
+    char separator = ' '; 
+    
+    //保存解析的参数，最多支持8个
+    uint8_t rsvPara[PARA_MAXNUM][PARA_LENGTH];
+    
+    //解析出的指令：
+    eSET_VALUE set = sERROR;
+    
+setparastart:
+    len =  Receive_string();
+    if(len && (tab_1024[0]== 'a'))
+        return;
+    
+    for(setPos=0; setPos<sCount; setPos++)
+    {
+
+        strPos = m_memfind((const char*)&tab_1024[0], sList[setPos]->setString, strlen(sList[setPos]->setString));
+        if(strPos != 0)
+        {
+            continue;
+        }
+        set = sList[setPos]->v;
+        strPos_bk = strlen(sList[setPos]->setString)+1;
+        break;
+    }
+    if(set == sERROR)
+        goto setparastart;
+
+    for(paraPos=0; paraPos<PARA_MAXNUM; paraPos++)
+    {
+        strPos = m_memfind(&tab_1024[strPos_bk],&separator,1);
+        if(strPos < 0 || strPos>=PARA_LENGTH-strPos_bk)
+            break;
+        
+        memcpy(rsvPara[paraPos],&tab_1024[strPos_bk],strPos);
+        rsvPara[paraPos][strPos] = 0;
+        strPos_bk += (strPos+1);
+    }
+
+    //执行函数
+    sList[setPos]->func(paraPos,rsvPara);
+
+    goto setparastart;
+
+}
+
 void m_iap_process(void)
 {
   volatile uint8_t key;
@@ -179,28 +346,55 @@ void m_iap_process(void)
     }
     if(key == '2')
     {
-      m_printf("\r\nUpload IMage(*.bin) from the OBJ Internal Flash ... \r\n\n");
-			m_iap_status = M_UPLOAD;
-			SerialUpload();
+        m_printf("\r\nUpload IMage(*.bin) from the OBJ Internal Flash ... \r\n\n");
+        m_iap_status = M_UPLOAD;
+        SerialUpload();
 			//m_iap_status = M_WAITING;
     }
     if((key == '3') || (m_iap_status==M_BOOTING))
     {
-			m_iap_status = M_BOOTING;
-      m_printf("\r\nExecute the new program ... \r\n\n");
-      JumpAddress = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
-      /* Jump to user application */
-      Jump_To_Application = (pFunction) JumpAddress;
-      /* Initialize user application's Stack Pointer */
-      __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
-      Jump_To_Application();
+        m_iap_status = M_BOOTING;
+        m_printf("\r\nExecute the new program ... \r\n\n");
+        JumpAddress = *(__IO uint32_t*) (APPLICATION_ADDRESS + 4);
+        /* Jump to user application */
+        Jump_To_Application = (pFunction) JumpAddress;
+        /* Initialize user application's Stack Pointer */
+        __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
+        Jump_To_Application();
     }
-    if((key == '4')&& (FlashProtection ==1))
+    
+    if(key == '4')
+    {
+        m_printf("Press 'a' abort, 'wr addr value' write value at addr\r\n\n");
+
+        SetParameter();
+
+        m_printf("Abort, m set!\r\n\n");
+        printf_menu();
+        m_iap_status = M_WAITING;
+    }
+
+    if(key == '5')
+    {
+        
+#if EEPROMTEST
+        m_printf("Test EEPROM Wr 128k data at 128 addr---------5\r\n\n");
+
+        for(int i =0; i <(0x80<<10);i++)
+        {
+            EE_WriteVariable((uint16_t)128,i%(0xffff));
+        }
+        m_printf("Test EEPROM Wr 128k data at 128 addr done!\r\n\n");
+#endif
+        m_iap_status = M_WAITING;
+    }
+    
+    if((key == '9')&& (FlashProtection ==1))
     {
       m_printf("\r\nDisable the write protection ... \r\n\n");
 			m_iap_status = M_WAITING;
     }
-    if(key == '0')
+    if((key == '0')||(key=='\t'))
     {
       printf_menu();
 			m_iap_status = M_WAITING;

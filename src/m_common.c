@@ -3,7 +3,7 @@
   * @file    ../middlewares/src/m_common.c
   * @author  yhangzzz
   * @version V1.0.0
-  * @date    2010.10.22
+  * @date    2018.10.22
   * @brief   m_common.c
   ******************************************************************************
   */ 
@@ -140,6 +140,26 @@ uint32_t Str2Int(uint8_t *inputstr, int32_t *intnum)
 
   return res;
 }
+
+
+//从buff中找到匹配长度为len的mem的偏移量，未找到返回-1；
+int16_t m_memfind(const char*buff, char* mem, int16_t len)
+{
+    int16_t pos,ipos;
+    int16_t max = strlen(buff) - len;
+    for(pos=0;pos<=max;pos++)
+    {
+        for(ipos=0; ipos<len; ipos++)
+        {
+            if(buff[pos+ipos] != mem[ipos])
+                break;
+        }
+        if(ipos == len)
+            return pos;
+    }
+    return -1;
+}
+
 #endif
 
 

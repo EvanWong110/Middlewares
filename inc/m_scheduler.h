@@ -3,7 +3,7 @@
   * @file    ../middlewares/inc/m_scheduler.h
   * @author  yhangzzz
   * @version V1.0.0
-  * @date    2010.10.22
+  * @date    2018.10.22
   * @brief   m_scheduler.h
   ******************************************************************************
   */ 
