@@ -22,13 +22,13 @@ void m_printf(const char *format, ...)
 	serial_write(buff);
 }
 
-int m_scanf(const char *format, ...)
-{
-  int cnt;
-  
-  va_list args;
-  va_start(args,format);
-  cnt = vscanf(format,args);
-  va_end(args);
-  return cnt;
-}
+//int m_scanf(const char *format, ...)
+//{
+//  int cnt;
+//  
+//  va_list args;
+//  va_start(args,format);
+//  cnt = vscanf(format,args);
+//  va_end(args);
+//  return cnt;
+//}

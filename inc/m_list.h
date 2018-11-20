@@ -1,10 +1,8 @@
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
-#include <linux/types.h>
-#include <linux/stddef.h>
-#include <linux/poison.h>
-#include <linux/const.h>
+//linux 内核 list代码；
+#include "m_common.h"
 
 /*
  * Simple doubly linked list implementation.
@@ -15,6 +13,10 @@
  * generate better code by using them directly rather than
  * using the generic single-entry routines.
  */
+
+struct list_head{
+    struct list_head *next,*prev;
+};
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 
@@ -33,7 +35,6 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
  */
-#ifndef CONFIG_DEBUG_LIST
 static inline void __list_add(struct list_head *new,
 			      struct list_head *prev,
 			      struct list_head *next)
@@ -43,11 +44,6 @@ static inline void __list_add(struct list_head *new,
 	new->prev = prev;
 	prev->next = new;
 }
-#else
-extern void __list_add(struct list_head *new,
-			      struct list_head *prev,
-			      struct list_head *next);
-#endif
 
 /**
  * list_add - add a new entry
@@ -95,7 +91,6 @@ static inline void __list_del(struct list_head * prev, struct list_head * next)
  * Note: list_empty() on entry does not return true after this, the entry is
  * in an undefined state.
  */
-#ifndef CONFIG_DEBUG_LIST
 static inline void __list_del_entry(struct list_head *entry)
 {
 	__list_del(entry->prev, entry->next);
@@ -104,13 +99,7 @@ static inline void __list_del_entry(struct list_head *entry)
 static inline void list_del(struct list_head *entry)
 {
 	__list_del(entry->prev, entry->next);
-	entry->next = LIST_POISON1;
-	entry->prev = LIST_POISON2;
 }
-#else
-extern void __list_del_entry(struct list_head *entry);
-extern void list_del(struct list_head *entry);
-#endif
 
 /**
  * list_replace - replace old entry by new one
@@ -590,6 +579,13 @@ static inline void list_splice_tail_init(struct list_head *list,
  * too wasteful.
  * You lose the ability to access the tail in O(1).
  */
+ struct hlist_head{
+    struct hlist_node *first;
+ };
+
+ struct hlist_node{
+    struct hlist_node *next,**pprev;
+ };
 
 #define HLIST_HEAD_INIT { .first = NULL }
 #define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
@@ -622,8 +618,6 @@ static inline void __hlist_del(struct hlist_node *n)
 static inline void hlist_del(struct hlist_node *n)
 {
 	__hlist_del(n);
-	n->next = LIST_POISON1;
-	n->pprev = LIST_POISON2;
 }
 
 static inline void hlist_del_init(struct hlist_node *n)

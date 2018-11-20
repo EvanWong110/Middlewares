@@ -20,12 +20,14 @@
 #define M_SCHEDULER_ENABLED 1
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "stddef.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 
-#define offsetof(TYPE,MEMBER) ((size_t)&((TYPE *)0)->MEMBER)
+//linux list.h 使用；如果使用linux内核链表，需要编译时开启GNU扩展；
+#define m_offsetof(TYPE,MEMBER) ((size_t)&((TYPE *)0)->MEMBER)
 #define container_of(ptr,type,member) ( {\
     const typeof( ((type*)0)->member ) *__mptr=(ptr);\
     (type*)( (char*)__mptr - offsetof(type,member) );} )
@@ -58,7 +60,6 @@ uint32_t Str2Int(uint8_t *inputstr,int32_t *intnum);
 #endif
 
 int16_t m_memfind(const char*buff, char* mem, int16_t len);
-
 
 #endif  /* __COMMON_H */
 

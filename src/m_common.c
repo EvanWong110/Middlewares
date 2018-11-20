@@ -146,7 +146,7 @@ uint32_t Str2Int(uint8_t *inputstr, int32_t *intnum)
 int16_t m_memfind(const char*buff, char* mem, int16_t len)
 {
     int16_t pos,ipos;
-    int16_t max = strlen(buff) - len;
+    int16_t max = strlen(buff)-len;
     for(pos=0;pos<=max;pos++)
     {
         for(ipos=0; ipos<len; ipos++)
@@ -159,6 +159,7 @@ int16_t m_memfind(const char*buff, char* mem, int16_t len)
     }
     return -1;
 }
+
 
 #endif
 
